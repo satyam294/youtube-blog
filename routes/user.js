@@ -1,5 +1,5 @@
 const { Router } = require("express");
-const { User } = require("../models/user");
+const { controlUserValidation, controlUserCreation } = require("../controllers/user");
 
 const userRouter = Router();
 
@@ -8,19 +8,13 @@ userRouter.get("/signup", (req, res) => {
 });
 
 userRouter.get("/signin", (req, res) => {
-  return res.render("signin");
+  const tryAgain = req.query.status === "401";
+  return res.render("signin", { tryAgain });
 });
 
-userRouter.post("/signup", async (req, res) => {
-  const { fullName, email, password } = req.body;
-  await User.create({
-    fullName,
-    email,
-    password,
-  });
+userRouter.post("/signup", controlUserCreation);
 
-  return res.redirect("/");
-});
+userRouter.post("/signin", controlUserValidation);
 
 module.exports = {
   userRouter,
