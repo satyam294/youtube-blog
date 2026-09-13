@@ -1,5 +1,5 @@
 const { Router } = require("express");
-const { controlUserValidation, controlUserCreation } = require("../controllers/user");
+const { controlUserValidation, controlUserCreation, controlUserLogout } = require("../controllers/user");
 
 const userRouter = Router();
 
@@ -15,6 +15,8 @@ userRouter.get("/signin", (req, res) => {
 userRouter.post("/signup", controlUserCreation);
 
 userRouter.post("/signin", controlUserValidation);
+
+userRouter.get("/logout", controlUserLogout);
 
 module.exports = {
   userRouter,
