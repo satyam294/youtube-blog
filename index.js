@@ -4,6 +4,8 @@ const mongoose = require("mongoose");
 const cookieParser = require("cookie-parser");
 
 const { userRouter } = require("./routes/user");
+const { blogRouter } = require("./routes/blog");
+
 const { attachUserIfPresent } = require("./middlewares/authentication");
 
 const app = express();
@@ -32,3 +34,5 @@ app.get('/', (req, res) => {
 });
 
 app.use('/user', userRouter);
+
+app.use('/blog', blogRouter);

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('./partials/head') %>
+  <title>Add Blog</title>
+</head>
+<body>
+  <%- include('./partials/navbar') %>
+
+  <div class="container mt-4">
+    <div class="row justify-content-center">
+      <div class="col-md-8 col-lg-7">
+        <div class="card shadow-sm">
+          <div class="card-body p-4">
+            <h2 class="card-title mb-4">Create New Blog</h2>
+
+            <form action="/blog" method="post">
+              <div class="mb-3">
+                <label for="coverImage" class="form-label">Cover Image</label>
+                <input
+                  type="file"
+                  class="form-control"
+                  id="coverImage"
+                  name="coverImage"
+                  accept="image/*"
+                />
+              </div>
+
+              <div class="mb-3">
+                <label for="title" class="form-label">Blog Title</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="title"
+                  name="title"
+                  placeholder="Enter blog title"
+                  required
+                />
+              </div>
+
+              <div class="mb-3">
+                <label for="body" class="form-label">Blog Body</label>
+                <textarea
+                  class="form-control"
+                  id="body"
+                  name="body"
+                  rows="10"
+                  placeholder="Write your blog here..."
+                  required
+                ></textarea>
+              </div>
+
+              <button type="submit" class="btn btn-primary">
+                Create Blog
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%- include('./partials/script') %>
+</body>
+</html>
