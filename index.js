@@ -6,6 +6,8 @@ const cookieParser = require("cookie-parser");
 const { userRouter } = require("./routes/user");
 const { blogRouter } = require("./routes/blog");
 
+const { Blog } = require("./models/blog");
+
 const { attachUserIfPresent } = require("./middlewares/authentication");
 
 const app = express();
@@ -25,11 +27,14 @@ app.set("views", path.resolve("./views"));
 app.use(express.json());
 app.use(express.urlencoded({extended: false}));
 app.use(cookieParser());  // converts all cookies into an object like structure
+app.use(express.static(path.resolve('./public')));
 app.use(attachUserIfPresent('sessionToken'));
 
-app.get('/', (req, res) => {
+app.get('/', async (req, res) => {
+  const blogs = await Blog.find({});
   return res.render("home", {
     user: req.user,
+    blogs,
   });
 });
 
