@@ -29,43 +29,105 @@
               <%- blog.body %>
             </div>
 
-            <div class="d-flex align-items-center border-top pt-3 mb-4">
+            <div class="d-flex justify-content-between align-items-center pt-3 pb-3 border-top">
+              <div class="d-flex align-items-center">
+                <img
+                  src="<%= blog.createdBy.profileImageURL %>"
+                  alt="<%= blog.createdBy.name %>"
+                  class="rounded-circle me-3"
+                  style="width: 50px; height: 50px; object-fit: cover;"
+                />
 
-            <img
-              src="<%= blog.createdBy.profileImageURL %>"
-              alt="<%= blog.createdBy.name %>"
-              class="rounded-circle me-3"
-              style="width: 50px; height: 50px; object-fit: cover;"
-            />
+                <div>
+                  <div class="fw-semibold">
+                    <%= blog.createdBy.fullName %>
+                  </div>
 
-            <div>
-              <div class="fw-semibold">
-                <%= blog.createdBy.fullName %>
+                  <small class="text-muted">
+                    <%= blog.createdAt.toLocaleString('en-IN', {
+                        dateStyle: 'medium',
+                        timeStyle: 'short'
+                    }) %>
+                  </small>
+                </div>
               </div>
-
-              <small class="text-muted">
-                <%= blog.createdAt.toLocaleString('en-IN', {
-                    dateStyle: 'medium',
-                    timeStyle: 'short'
-                }) %>
-              </small>
-            </div>
-
-          </div>
-
-
-            <div class="d-flex justify-content-between">
-              <a href="/blog/<%= blog._id %>/comments" class="btn btn-primary">
-                Comments
-              </a>
 
               <a href="/" class="btn btn-secondary">
                 Home
               </a>
-            </div>
-
+            </div> 
           </div>
         </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+      <div class="col-md-10 col-lg-8">
+
+        <h3 class="mb-3">Comments (<%= comments.length %>) </h3>
+
+        <% if (user) { %>
+          <form action="/blog/<%= blog._id %>/comment" method="POST" class="mb-3">
+
+            <div class="mb-3">
+              <textarea
+                name="content"
+                class="form-control"
+                rows="4"
+                placeholder="Write a comment..."
+                required
+              ></textarea>
+            </div>
+
+            <div class="d-flex justify-content-end">
+              <button type="submit" class="btn btn-primary">
+                Add Comment
+              </button>
+            </div>
+
+          </form>
+        <% } %>
+
+        
+
+        <% comments.forEach(comment => { %>
+
+          <div class="border-bottom pb-3 mb-3">
+
+            <div class="d-flex align-items-center">
+
+              <img
+                src="<%= comment.createdBy.profileImageURL %>"
+                alt="<%= comment.createdBy.fullName %>"
+                class="rounded-circle me-2"
+                style="width: 38px; height: 38px; object-fit: cover;"
+              />
+
+              <div>
+                <div class="fw-semibold">
+                  <%= comment.createdBy.fullName %>
+                </div>
+
+                <small class="text-muted">
+                  <%= comment.createdAt.toLocaleString('en-IN', {
+                      dateStyle: 'medium',
+                      timeStyle: 'short'
+                  }) %>
+                </small>
+              </div>
+
+            </div>
+
+            <p class="mt-2 mb-0">
+              <%= comment.content %>
+            </p>
+
+          </div>
+
+        <% }) %>
 
       </div>
     </div>

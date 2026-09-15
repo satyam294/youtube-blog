@@ -5,6 +5,7 @@ const fs = require("fs");
 const { marked } = require("marked");
 
 const { Blog } = require("../models/blog");
+const { Comment } = require("../models/comment");
 
 const blogRouter = Router();
 
@@ -44,14 +45,26 @@ blogRouter.get('/create-new', (req, res) => {
   });
 });
 
-blogRouter.get('/:id', async (req, res) => {
-  const blog = await Blog.findById(req.params.id).populate("createdBy");
+blogRouter.get('/:blogId', async (req, res) => {
+  const blog = await Blog.findById(req.params.blogId).populate("createdBy");
+  const comments = await Comment.find({ blogId: req.params.blogId }).populate("createdBy");
   blog.body = marked(blog.body);
 
   return res.render("blog", {
     user: req.user,
     blog,
+    comments,
   });
+});
+
+blogRouter.post('/:blogId/comment', async (req, res) => {
+  await Comment.create({
+    content: req.body.content,
+    blogId: req.params.blogId,
+    createdBy: req.user._id,
+  });
+
+  return res.redirect(`/blog/${req.params.blogId}`);
 });
 
 module.exports = {
