@@ -45,7 +45,7 @@ blogRouter.get('/create-new', (req, res) => {
 });
 
 blogRouter.get('/:id', async (req, res) => {
-  const blog = await Blog.findById(req.params.id);
+  const blog = await Blog.findById(req.params.id).populate("createdBy");
   blog.body = marked(blog.body);
 
   return res.render("blog", {
