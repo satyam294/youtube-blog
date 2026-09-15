@@ -2,6 +2,7 @@ const { Router } = require("express");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const { marked } = require("marked");
 
 const { Blog } = require("../models/blog");
 
@@ -40,6 +41,16 @@ blogRouter.post('/', upload.single("coverImage"), async (req, res) => {
 blogRouter.get('/create-new', (req, res) => {
   return res.render("addBlog", {
     user: req.user
+  });
+});
+
+blogRouter.get('/:id', async (req, res) => {
+  const blog = await Blog.findById(req.params.id);
+  blog.body = marked(blog.body);
+
+  return res.render("blog", {
+    user: req.user,
+    blog,
   });
 });
 
