@@ -4,6 +4,7 @@ const express = require("express");
 const path = require("path");
 const mongoose = require("mongoose");
 const cookieParser = require("cookie-parser");
+const config = require("./config/index");
 
 const { userRouter } = require("./routes/user");
 const { blogRouter } = require("./routes/blog");
@@ -13,10 +14,10 @@ const { Blog } = require("./models/blog");
 const { attachUserIfPresent } = require("./middlewares/authentication");
 
 const app = express();
-const PORT = process.env.PORT || 8000;  
+const PORT = config.PORT;  
 
 mongoose
-  .connect(process.env.MONGO_URL)
+  .connect(config.MONGO_URL)
   .then(() => {
     app.listen(PORT, () => console.log(`Listening on port ${PORT}`));
   })
