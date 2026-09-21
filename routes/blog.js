@@ -6,6 +6,7 @@ const { marked } = require("marked");
 
 const { Blog } = require("../models/blog");
 const { Comment } = require("../models/comment");
+const { requireAuth } = require("../middlewares/authentication");
 
 const blogRouter = Router();
 
@@ -26,7 +27,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({storage});
 
-blogRouter.post('/', upload.single("coverImage"), async (req, res) => {
+blogRouter.post('/', requireAuth, upload.single("coverImage"), async (req, res) => {
   const { body, title } = req.body;
 
   const blog = await Blog.create({
@@ -39,7 +40,7 @@ blogRouter.post('/', upload.single("coverImage"), async (req, res) => {
   return res.redirect(`/blog/${blog._id}`);
 });
 
-blogRouter.get('/create-new', (req, res) => {
+blogRouter.get('/create-new', requireAuth, (req, res) => {
   return res.render("addBlog", {
     user: req.user
   });
@@ -57,7 +58,7 @@ blogRouter.get('/:blogId', async (req, res) => {
   });
 });
 
-blogRouter.post('/:blogId/comment', async (req, res) => {
+blogRouter.post('/:blogId/comment', requireAuth, async (req, res) => {
   await Comment.create({
     content: req.body.content,
     blogId: req.params.blogId,

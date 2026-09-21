@@ -23,13 +23,22 @@ function attachUserIfPresent(cookieName) {
       } else {
         console.log("Authentication token verification failed:", err.message);
       }
-      
+
       return next();
     }
   }
 }
 
+function requireAuth(req, res, next) {
+    if (!req.user) {
+        return res.redirect("/user/signin");
+    }
+
+    next();
+}
+
 module.exports = {
   attachUserIfPresent,
+  requireAuth,
 }
 
