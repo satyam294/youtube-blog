@@ -9,7 +9,8 @@ userRouter.get("/signup", (req, res) => {
 
 userRouter.get("/signin", (req, res) => {
   const tryAgain = req.query.status === "401";
-  return res.render("signin", { tryAgain });
+  const returnTo = req.query.returnTo;
+  return res.render("signin", { tryAgain, returnTo });
 });
 
 userRouter.post("/signup", controlUserCreation);

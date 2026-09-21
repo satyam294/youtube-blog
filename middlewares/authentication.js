@@ -31,7 +31,8 @@ function attachUserIfPresent(cookieName) {
 
 function requireAuth(req, res, next) {
     if (!req.user) {
-        return res.redirect("/user/signin");
+      const returnTo = req.originalUrl;
+      return res.redirect(`/user/signin?returnTo=${encodeURIComponent(returnTo)}`);
     }
 
     next();
