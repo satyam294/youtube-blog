@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('./partials/head') %>
+  <title>Error</title>
+</head>
+
+<body>
+  <%- include('./partials/navbar') %>
+
+  <div class="container mt-5 text-center">
+
+    <h1>Oops!</h1>
+
+    <p class="lead">
+      <%= message %>
+    </p>
+
+    <a href="/" class="btn btn-primary">
+      Go Home
+    </a>
+
+    <% if (stack) { %>
+      <hr>
+
+      <pre class="text-start"><%= stack %></pre>
+    <% } %>
+
+  </div>
+
+  <%- include('./partials/script') %>
+</body>
+</html>

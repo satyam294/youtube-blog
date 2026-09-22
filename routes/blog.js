@@ -7,6 +7,8 @@ const { marked } = require("marked");
 const { Blog } = require("../models/blog");
 const { Comment } = require("../models/comment");
 const { requireAuth } = require("../middlewares/authentication");
+const { mongoose } = require("mongoose");
+const AppError = require("../services/AppError");
 
 const blogRouter = Router();
 
@@ -36,7 +38,7 @@ blogRouter.post('/', requireAuth, upload.single("coverImage"), async (req, res) 
     coverImageURL: `/uploads/${req.user._id}/${req.file.filename}`,
     createdBy: req.user._id,
   });
-
+  
   return res.redirect(`/blog/${blog._id}`);
 });
 
@@ -47,7 +49,16 @@ blogRouter.get('/create-new', requireAuth, (req, res) => {
 });
 
 blogRouter.get('/:blogId', async (req, res) => {
-  const blog = await Blog.findById(req.params.blogId).populate("createdBy");
+  const blogId = req.params.blogId;
+  if(!mongoose.isValidObjectId(blogId)) {
+    throw new AppError(404, "Blog not found.");
+  }
+
+  const blog = await Blog.findById(blogId).populate("createdBy");
+  if(!blog) {
+    throw new AppError(404, "Blog not found.");
+  }
+
   const comments = await Comment.find({ blogId: req.params.blogId }).populate("createdBy");
   blog.body = marked(blog.body);
 

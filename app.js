@@ -12,23 +12,24 @@ const { blogRouter } = require("./routes/blog");
 const { Blog } = require("./models/blog");
 
 const { attachUserIfPresent } = require("./middlewares/authentication");
+const errorHandler = require("./middlewares/errorHandler");
 
 const app = express();
-const PORT = config.PORT;  
+const PORT = config.PORT;
 
 mongoose
   .connect(config.MONGO_URL)
   .then(() => {
     app.listen(PORT, () => console.log(`Listening on port ${PORT}`));
   })
-  .catch(err => console.log(`connection failed: ${err.message}`)); 
+  .catch(err => console.log(`connection failed: ${err.message}`));
 
 
 app.set("view engine", "ejs");
 app.set("views", path.resolve("./views"));
 
 app.use(express.json());
-app.use(express.urlencoded({extended: false}));
+app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());  // converts all cookies into an object like structure
 app.use(express.static(path.resolve('./public')));
 app.use(attachUserIfPresent('sessionToken'));
@@ -44,3 +45,13 @@ app.get('/', async (req, res) => {
 app.use('/user', userRouter);
 
 app.use('/blog', blogRouter);
+
+// Catch-all 404
+app.use((req, res, next) => {
+  res.status(404).render("error", {
+    message: "Page not found.",
+    stack: null
+  });
+});
+
+app.use(errorHandler);
