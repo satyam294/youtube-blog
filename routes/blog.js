@@ -32,10 +32,14 @@ const upload = multer({storage});
 blogRouter.post('/', requireAuth, upload.single("coverImage"), async (req, res) => {
   const { body, title } = req.body;
 
+  const coverImageURL = req.file 
+    ? `/uploads/${req.user._id}/${req.file.filename}`
+    : '/images/default_blog.png';
+
   const blog = await Blog.create({
     title,
     body,
-    coverImageURL: `/uploads/${req.user._id}/${req.file.filename}`,
+    coverImageURL,
     createdBy: req.user._id,
   });
   
