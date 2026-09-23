@@ -2,17 +2,27 @@ const { User } = require("../models/user");
 const { createToken } = require("../services/authentication");
 const { isSafeRoute } =require("../services/safeRoute");
 const config = require("../config/index");
+const AppError = require("../services/AppError");
 
 async function controlUserCreation (req, res) {
   const { fullName, email, password } = req.body;
-  await User.create({
-    fullName,
-    email,
-    password,
-    salt: "default_salt",
-  });
 
-  return res.redirect("/");
+  try{
+    await User.create({
+      fullName,
+      email,
+      password,
+      salt: "default_salt",
+    });
+    
+    return res.redirect("/");
+  } catch(err) {
+    if(err.code === 11000) {
+      throw new AppError(409, "User with this email already exists.");
+    }
+
+    throw err;
+  }
 }
 
 async function controlUserValidation (req, res) {
