@@ -2,13 +2,13 @@ const { Router } = require("express");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
-const { marked } = require("marked");
-
-const { Blog } = require("../models/blog");
-const { Comment } = require("../models/comment");
 const { requireAuth } = require("../middlewares/authentication");
-const { mongoose } = require("mongoose");
-const AppError = require("../services/AppError");
+const {
+  controlBlogCreation,
+  controlNewBlogPage,
+  controlBlogRetrieval,
+  controlBlogCommentCreation,
+} = require("../controllers/blog");
 
 const blogRouter = Router();
 
@@ -29,59 +29,13 @@ const storage = multer.diskStorage({
 
 const upload = multer({storage});
 
-blogRouter.post('/', requireAuth, upload.single("coverImage"), async (req, res) => {
-  const { body, title } = req.body;
+blogRouter.post('/', requireAuth, upload.single("coverImage"), controlBlogCreation);
 
-  const coverImageURL = req.file 
-    ? `/uploads/${req.user._id}/${req.file.filename}`
-    : '/images/default_blog.png';
+blogRouter.get('/create-new', requireAuth, controlNewBlogPage);
 
-  const blog = await Blog.create({
-    title,
-    body,
-    coverImageURL,
-    createdBy: req.user._id,
-  });
-  
-  return res.redirect(`/blog/${blog._id}`);
-});
+blogRouter.get('/:blogId', controlBlogRetrieval);
 
-blogRouter.get('/create-new', requireAuth, (req, res) => {
-  return res.render("addBlog", {
-    user: req.user
-  });
-});
-
-blogRouter.get('/:blogId', async (req, res) => {
-  const blogId = req.params.blogId;
-  if(!mongoose.isValidObjectId(blogId)) {
-    throw new AppError(404, "Blog not found.");
-  }
-
-  const blog = await Blog.findById(blogId).populate("createdBy");
-  if(!blog) {
-    throw new AppError(404, "Blog not found.");
-  }
-
-  const comments = await Comment.find({ blogId: req.params.blogId }).populate("createdBy");
-  blog.body = marked(blog.body);
-
-  return res.render("blog", {
-    user: req.user,
-    blog,
-    comments,
-  });
-});
-
-blogRouter.post('/:blogId/comment', requireAuth, async (req, res) => {
-  await Comment.create({
-    content: req.body.content,
-    blogId: req.params.blogId,
-    createdBy: req.user._id,
-  });
-
-  return res.redirect(`/blog/${req.params.blogId}`);
-});
+blogRouter.post('/:blogId/comment', requireAuth, controlBlogCommentCreation);
 
 module.exports = {
   blogRouter,

@@ -9,8 +9,7 @@ const config = require("./config/index");
 const { userRouter } = require("./routes/user");
 const { blogRouter } = require("./routes/blog");
 
-const { Blog } = require("./models/blog");
-
+const { controlHomePageRender } = require("./controllers/home");
 const { attachUserIfPresent } = require("./middlewares/authentication");
 const errorHandler = require("./middlewares/errorHandler");
 
@@ -34,13 +33,7 @@ app.use(cookieParser());  // converts all cookies into an object like structure
 app.use(express.static(path.resolve('./public')));
 app.use(attachUserIfPresent('sessionToken'));
 
-app.get('/', async (req, res) => {
-  const blogs = await Blog.find({});
-  return res.render("home", {
-    user: req.user,
-    blogs,
-  });
-});
+app.get('/', controlHomePageRender);
 
 app.use('/user', userRouter);
 
