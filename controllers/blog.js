@@ -3,7 +3,7 @@ const { Comment } = require("../models/comment");
 const { marked } = require("marked");
 const { mongoose } = require("mongoose");
 const AppError = require("../services/AppError");
-
+const sanitizeMarkdownHtml = require("../services/sanitize");
 
 async function controlBlogCreation(req, res) {
   const { body, title } = req.body;
@@ -34,7 +34,10 @@ async function controlBlogRetrieval(req, res) {
   }
 
   const comments = await Comment.find({ blogId: req.params.blogId }).populate("createdBy");
-  blog.body = marked(blog.body);
+
+  const html = marked(blog.body);
+  const sanitizedHtml = sanitizeMarkdownHtml(html);
+  blog.body = sanitizedHtml;
 
   return res.render("blog", {
     user: req.user,
