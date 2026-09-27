@@ -12,7 +12,6 @@ async function controlUserCreation (req, res) {
       fullName,
       email,
       password,
-      salt: "default_salt",
     });
     
     return res.redirect("/");
@@ -29,7 +28,7 @@ async function controlUserValidation (req, res) {
   const { email, password, returnTo } = req.body;
   const user = await User.findOne({ email });
 
-  if (!user || !user.matchPassword(password)) {
+  if (!user || !(await user.matchPassword(password))) {
     return res.status(401).redirect(`/user/signin?status=401&returnTo=${encodeURIComponent(returnTo || "")}`);
   }
 

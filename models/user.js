@@ -1,5 +1,6 @@
 const { model, Schema } = require("mongoose");
-const { createHmac, randomBytes } = require("crypto");
+const { createHmac } = require("crypto");
+const bcrypt = require("bcrypt");
 
 // schema
 const userSchema = new Schema({
@@ -8,17 +9,16 @@ const userSchema = new Schema({
     required: true,
   },
   email: {
-    type: String, 
+    type: String,
     required: true,
     unique: true,
   },
-  salt: {
-    type: String, 
-    required: true
-  },
-  password:{
+  password: {
     type: String,
     required: true,
+  },
+  salt: {
+    type: String,
   },
   profileImageURL: {
     type: String,
@@ -29,40 +29,47 @@ const userSchema = new Schema({
     enum: ["USER", "ADMIN"],
     default: "USER",
   }
-}, {timestamps: true});
+}, { timestamps: true });
 
 // middleware before each save
 // create() -> user1 = new User({}) -> user1.save();
 // using pre -> user1.function() -> user1.save(); 
-userSchema.pre("save", function() {
+userSchema.pre("save", async function () {
   const user = this;  // mongoose attached the user to this
 
-  if(!user.isModified("password")) {  // run hash only when the password field is modified
+  if (!user.isModified("password")) {  // run hash only when the password field is modified
     return;
   }
 
-  const salt = randomBytes(16).toString("hex");
-  const hashedPassword = createHmac("sha256", salt)
-    .update(user.password)
-    .digest("hex");
-
-  user.salt = salt;
-  user.password = hashedPassword;
+  // Hash whatever plaintext password is currently in the document.
+  user.password = await bcrypt.hash(user.password, 12);
 });
 
 // virtuals -> property getters and setter, ones that are not explicitly stored in the document(e.g. first name)
-// statics -> methods that invlove the entire document (e.g. User.findByEmail())
+// statics -> methods that invlove the entire Model (e.g. User.findByEmail())
 // methods -> instance methods that are performed using a single document (e.g. user1.verifyPass())
 
-userSchema.methods.matchPassword = function(password) {
-  const salt = this.salt;
-  const hashedPassword = this.password;
+userSchema.methods.matchPassword = async function (enteredPass) {
+  if (this.salt) {
+    const salt = this.salt;
 
-  const givenHashedPassword = createHmac("sha256", salt)
-    .update(password)
-    .digest("hex");
+    const givenHashedPassword = createHmac("sha256", salt)
+      .update(enteredPass)
+      .digest("hex");
+
+    if(givenHashedPassword !== this.password) return false;
+
+    // Correct legacy password.
+    // Put the plaintext password into `password`.
+    // pre("save") will bcrypt-hash it.
+    this.salt = undefined;
+    this.password = enteredPass;
+
+    await this.save();
+    return true;
+  }
   
-  return givenHashedPassword === hashedPassword;
+  return await bcrypt.compare(enteredPass, this.password);
 }
 
 // model
