@@ -28,6 +28,15 @@ const userSchema = new Schema({
     type: String,
     enum: ["USER", "ADMIN"],
     default: "USER",
+  },
+  bio: {
+    type: String,
+    default: "I read blogs.",
+    maxlength: 300
+  },
+  profileComplete: {
+    type: Boolean,
+    default: false
   }
 }, { timestamps: true });
 

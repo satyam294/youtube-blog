@@ -1,5 +1,12 @@
 const { Router } = require("express");
-const { controlUserValidation, controlUserCreation, controlUserLogout } = require("../controllers/user");
+const { requireAuth } = require("../middlewares/authentication");
+const uploadProfileImage = require("../middlewares/uploadProfileImage");
+const { 
+  controlUserValidation, 
+  controlUserCreation, 
+  controlUserLogout,
+  controlProfileCompletion, 
+} = require("../controllers/user");
 
 const userRouter = Router();
 
@@ -18,6 +25,19 @@ userRouter.post("/signup", controlUserCreation);
 userRouter.post("/signin", controlUserValidation);
 
 userRouter.get("/logout", controlUserLogout);
+
+userRouter.get("/profile/setup", requireAuth, (req, res) => {
+  return res.render("profile-setup", {
+    user: req.user,
+  });
+});
+
+userRouter.post(
+  "/profile/setup", 
+  requireAuth,
+  uploadProfileImage.single("profileImage"), 
+  controlProfileCompletion
+);
 
 module.exports = {
   userRouter,
