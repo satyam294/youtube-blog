@@ -76,9 +76,17 @@ async function controlProfileCompletion(req, res) {
   return res.redirect("/");
 }
 
+async function controlProfileRender(req, res) {
+  const user = await User.findById(req.user._id);
+  return res.render("profile", {
+    user,
+  });
+}
+
 module.exports = {
   controlUserCreation,
   controlUserValidation,
   controlUserLogout,
+  controlProfileRender,
   controlProfileCompletion,
 }
