@@ -55,9 +55,12 @@ async function controlProfileCompletion(req, res) {
   const { bio } = req.body;
 
   const updateData = {
-    bio: bio?.trim() || "",
     profileComplete: true
   };
+
+  if (bio !== undefined && bio.length !== 0) {
+    updateData.bio = bio?.trim() || "";
+  }
 
   // If user uploaded an image
   if (req.file) {
