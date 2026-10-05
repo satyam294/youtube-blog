@@ -22,10 +22,11 @@
           </p>
         </div>
 
-        <!-- Dummy edit option for now -->
-        <button class="btn btn-primary btn-sm ms-3">
-          Complete Profile
-        </button>
+        <a href="/user/profile/setup">
+          <button class="btn btn-primary btn-sm ms-3">
+            Complete Profile
+          </button>
+        </a>
       </div>
     <% } %>
 
@@ -86,98 +87,56 @@
           </p>
         </div>
 
-        <!-- Dummy button -->
-        <button class="btn btn-primary">
-          <i class="bi bi-plus-lg me-1"></i>
-          Create Blog
-        </button>
+        <a href="/blog/create-new">
+          <button class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i>
+            Create Blog
+          </button>
+        </a>
       </div>
 
-
-      <!-- Dummy Blog Cards -->
+      
       <div class="row g-4">
+      <% if (blogs.length === 0) { %>
 
-        <!-- Blog 1 -->
-        <div class="col-md-6 col-lg-4">
-          <div class="card h-100 border-0 shadow-sm">
-            <div class="card-body">
-              <h5 class="card-title fw-semibold">
-                Getting Started with Node.js
-              </h5>
-
-              <p class="card-text text-muted">
-                A beginner-friendly introduction to building web applications
-                with Node.js and Express.
-              </p>
-
-              <small class="text-muted">
-                Published recently
-              </small>
-            </div>
-
-            <div class="card-footer bg-white border-0">
-              <button class="btn btn-outline-primary btn-sm">
-                Read Blog
-              </button>
-            </div>
-          </div>
+        <div class="col-12 text-center text-black-50 py-5">
+          You have not written any blogs.
         </div>
 
+      <% } else { %>
 
-        <!-- Blog 2 -->
-        <div class="col-md-6 col-lg-4">
-          <div class="card h-100 border-0 shadow-sm">
-            <div class="card-body">
-              <h5 class="card-title fw-semibold">
-                Understanding MongoDB
-              </h5>
+        <% blogs.forEach(blog => { %>
+          <div class="col-md-6 col-lg-4">
+            <div class="card border-0 shadow-sm h-100 pb-2">
 
-              <p class="card-text text-muted">
-                Exploring the fundamentals of MongoDB and how it works with
-                Express applications.
-              </p>
+              <div class="card-body d-flex flex-column">
+                <h5 class="card-title fw-semibold mb-3">
+                  <%= blog.title %>
+                </h5>
 
-              <small class="text-muted">
-                Published recently
-              </small>
-            </div>
+                <p class="card-text text-secondary">
+                  <%= blog.body.slice(0, 100) + "..." %>
+                </p>
 
-            <div class="card-footer bg-white border-0">
-              <button class="btn btn-outline-primary btn-sm">
-                Read Blog
-              </button>
-            </div>
-          </div>
-        </div>
+                <small class="text-black-50 mt-auto">
+                  <%= blog.createdAt.toLocaleString('en-IN', {
+                      dateStyle: 'medium',
+                      timeStyle: 'short'
+                  }) %>
+                </small>
+              </div>
 
+              <div class="card-footer bg-white border-0">
+                <a href="/blog/<%= blog._id %>" class="btn btn-outline-primary btn-sm">
+                  Read Blog
+                </a>
+              </div>
 
-        <!-- Blog 3 -->
-        <div class="col-md-6 col-lg-4">
-          <div class="card h-100 border-0 shadow-sm">
-            <div class="card-body">
-              <h5 class="card-title fw-semibold">
-                Building My First Blog App
-              </h5>
-
-              <p class="card-text text-muted">
-                What I learned while building a complete blog application
-                using Express and EJS.
-              </p>
-
-              <small class="text-muted">
-                Published recently
-              </small>
-            </div>
-
-            <div class="card-footer bg-white border-0">
-              <button class="btn btn-outline-primary btn-sm">
-                Read Blog
-              </button>
             </div>
           </div>
-        </div>
+        <% }) %>
 
-      </div>
+      <% } %>
     </div>
 
   </div>

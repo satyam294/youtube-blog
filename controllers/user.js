@@ -3,6 +3,7 @@ const { createToken } = require("../services/authentication");
 const { isSafeRoute } = require("../services/safeRoute");
 const config = require("../config/index");
 const AppError = require("../services/AppError");
+const { Blog } = require("../models/blog");
 
 async function controlUserCreation(req, res) {
   const { fullName, email, password } = req.body;
@@ -81,8 +82,13 @@ async function controlProfileCompletion(req, res) {
 
 async function controlProfileRender(req, res) {
   const user = await User.findById(req.user._id);
+  const blogs = await Blog.find({
+    createdBy: user._id
+  });
+
   return res.render("profile", {
     user,
+    blogs,
   });
 }
 
