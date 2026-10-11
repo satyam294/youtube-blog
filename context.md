@@ -1,284 +1,299 @@
 # YouTube Blog Project Context
 
-## 1. Purpose
+## 1. Current project stage
 
-This project is a server-rendered blog application called **Blogify**. It allows visitors to browse published blog posts, registered users to sign in, authenticated users to create posts with cover images, and authenticated users to add comments to blog posts.
+This repository is a working Express + MongoDB blog application called Blogify. The project has moved beyond a simple prototype and now includes:
 
-The application is currently a small monolithic Node.js/Express application. It uses EJS for HTML rendering, MongoDB through Mongoose for persistence, JSON Web Tokens (JWTs) stored in cookies for login sessions, and the local `public` directory for static files and uploaded cover images.
+- guest browsing of published blog posts
+- user signup and signin
+- cookie-based authenticated sessions
+- profile setup and profile dashboard
+- blog creation with uploaded cover images
+- blog reading and comments
+- public static assets and uploaded files served from the app
 
-## 2. Technology Stack
+The codebase is currently in a functional MVP stage: the main user journey works end-to-end, but it is still a lightweight app without admin moderation, multi-user roles enforcement, or a full production hardening pass.
 
-- **Runtime:** Node.js
-- **Module system:** CommonJS (`require` / `module.exports`)
-- **Web framework:** Express 5
-- **Template engine:** EJS
-- **Database:** MongoDB through Mongoose
-- **Authentication:** JWT using `jsonwebtoken`
-- **Session transport:** HTTP cookie named `sessionToken`
-- **Request parsing:** `express.json`, `express.urlencoded`, and `cookie-parser`
-- **File uploads:** Multer with disk storage
-- **Markdown rendering:** `marked`
-- **Frontend styling:** Bootstrap 5.3 loaded from jsDelivr in the EJS partials
-- **Development runner:** Nodemon
+## 2. Technology stack
 
-Important dependencies are declared in `package.json`; `package-lock.json` records the installed dependency tree.
+- Runtime: Node.js
+- Web framework: Express 5
+- Template engine: EJS
+- Database: MongoDB via Mongoose
+- Auth: JWT in a `sessionToken` cookie
+- Password hashing: bcrypt with a legacy salt-based compatibility path
+- File uploads: Multer with local disk storage
+- Markdown rendering: `marked`
+- HTML sanitization: `sanitize-html`
+- UI: Bootstrap 5
+- Env loader: dotenv
+- Dev runner: nodemon
 
-## 3. Runtime Configuration
+## 3. Runtime configuration
 
-`app.js` loads environment variables using `dotenv`.
+The app centralizes environment handling in `config/index.js`.
 
-The application currently expects:
+Required runtime values:
 
-- `MONGO_URL`: MongoDB connection string.
-- `PORT`: optional HTTP port. Defaults to `8000` when absent.
+- `MONGO_URL`: MongoDB connection string
+- `JWT_SECRET`: secret used to sign and verify JWTs
 
-The actual `.env` file is ignored by Git and must not be committed. Uploaded files, image files, and `node_modules` are also ignored according to `.gitignore`.
+Optional values:
 
-The server starts listening only after the MongoDB connection succeeds. A connection failure is logged and the server is not started.
+- `PORT`: HTTP port. Defaults to `8000`.
+- `JWT_EXPIRES_IN`: token expiration. Defaults to `7d`.
+- `NODE_ENV`: runtime type; defaults to `development`.
 
-## 4. Project Structure
+Startup behavior:
 
-```text
-app.js                         Application entrypoint and global middleware
-package.json                   Scripts and dependency declarations
-package-lock.json              Locked dependency versions
-controllers/
-  user.js                      Signup, signin, and logout controller functions
-middlewares/
-  authentication.js            Optional JWT-cookie user attachment middleware
-models/
-  user.js                      User schema, password hashing, password matching
-  blog.js                      Blog post schema
-  comment.js                   Comment schema
-routes/
-  user.js                      User page and authentication routes
-  blog.js                      Blog creation, display, upload, and comment routes
-services/
-  authentication.js            JWT creation and verification
-views/
-  home.ejs                     Blog listing page
-  signup.ejs                   Signup form
-  signin.ejs                   Signin form and authentication error message
-  addBlog.ejs                  New blog form with image upload
-  blog.ejs                     Blog detail page and comments
-  partials/
-    head.ejs                   Bootstrap CSS and document metadata
-    navbar.ejs                 Shared navigation and auth-dependent links
-    script.ejs                 Bootstrap JavaScript
-public/
-  images/                      Static image assets, including the default profile image
-  uploads/                     User-scoped uploaded cover images
-```
+1. `dotenv` loads the environment.
+2. `mongoose.connect(config.MONGO_URL)` is attempted.
+3. The app listens only after the DB connection succeeds.
+4. EJS templates are configured from the `views` directory.
+5. Global request middleware is registered before route handling.
 
-## 5. Application Bootstrap and Global Middleware
+## 4. Application bootstrap and middleware
 
-The application is created in `app.js`.
+`app.js` contains the application entrypoint and order of startup:
 
-Startup sequence:
+1. load environment variables
+2. create Express app
+3. connect to MongoDB
+4. configure EJS views
+5. parse JSON and form data
+6. attach cookies to `req.cookies`
+7. serve static assets from `public`
+8. attach the current user to the request via `attachUserIfPresent('sessionToken')`
+9. register the homepage, `/user`, and `/blog` routers
+10. register a 404 handler and a global error handler
 
-1. Load `.env` values.
-2. Create the Express application.
-3. Determine the port from `PORT`, defaulting to `8000`.
-4. Connect to MongoDB using `MONGO_URL`.
-5. Start the HTTP server after a successful database connection.
-6. Configure EJS and the `views` directory.
-7. Register request parsing and static-file middleware.
-8. Attach the optional authenticated user to every request.
-9. Register the home route and the `/user` and `/blog` routers.
+The middleware order is currently:
 
-Global middleware order:
+- `express.json()`
+- `express.urlencoded({ extended: false })`
+- `cookieParser()`
+- `express.static(path.resolve('./public'))`
+- `attachUserIfPresent('sessionToken')`
 
-1. `express.json()` parses JSON request bodies.
-2. `express.urlencoded({ extended: false })` parses standard HTML form submissions.
-3. `cookieParser()` exposes cookies through `req.cookies`.
-4. `express.static(...)` serves files from `public` at the site root. For example, `public/uploads/...` is available as `/uploads/...`.
-5. `attachUserIfPresent('sessionToken')` checks the login cookie and sets `req.user` when it contains a valid JWT.
+`attachUserIfPresent` validates the JWT if present and sets `req.user`; if the token is invalid or expired, it clears the cookie and continues.
 
-There is no global error handler and no general authentication guard. The authentication middleware is an optional context loader rather than an access-control middleware.
+## 5. Authentication and authorization flow
 
-## 6. Authentication Design
-
-### User registration
+### User signup
 
 `POST /user/signup` is handled by `controlUserCreation` in `controllers/user.js`.
 
-The controller reads `fullName`, `email`, and `password` from the form body and creates a `User` document. It also supplies `salt: "default_salt"`, but the user model's `pre("save")` hook replaces this with a randomly generated salt before saving. After creation, the user is redirected to `/` and is not automatically signed in.
+Flow:
 
-### Password storage
-
-The user model hashes passwords in a Mongoose `pre("save")` hook:
-
-1. Generate 16 random bytes and convert them to hexadecimal.
-2. Use the salt as the HMAC key.
-3. Hash the password with SHA-256.
-4. Store the generated salt and resulting hash.
-
-`matchPassword(password)` repeats the HMAC operation with the stored salt and compares the result to the stored hash.
+1. Reads `fullName`, `email`, and `password` from `req.body`.
+2. Creates a `User` document.
+3. Creates a JWT payload using the user identity and role.
+4. Stores the JWT in the `sessionToken` cookie.
+5. Redirects the user to `/user/profile/setup`.
 
 ### Signin
 
-`POST /user/signin` is handled by `controlUserValidation`:
+`POST /user/signin` validates the user and redirects either to the protected route or home.
 
-1. Find a user by email.
-2. Reject the request with a `401` redirect to `/user/signin?status=401` if the user does not exist or the password does not match.
-3. Create a JWT containing the user's `_id`, `fullName`, `email`, `profileImageURL`, and `role`.
-4. Store the JWT in the `sessionToken` cookie.
-5. Redirect to `/`.
+Flow:
 
-The signin view displays an invalid-credentials warning when the query parameter `status` is `401`.
+1. Finds a user by email.
+2. Uses `user.matchPassword(password)` to validate credentials.
+3. Creates a JWT and stores it in the cookie.
+4. Redirects to a safe `returnTo` value when present; otherwise redirects to `/`.
 
-### Request-time user attachment
+The app rejects invalid credentials with a redirect to `/user/signin?status=401`.
 
-`attachUserIfPresent('sessionToken')` reads `req.cookies.sessionToken` on each request. If no cookie exists, it calls `next()` without setting `req.user`. If a cookie exists, it verifies the JWT and assigns the decoded payload to `req.user`.
+### Protected routes
 
-The JWT secret is currently hard-coded in `services/authentication.js` as `frontent-is-also-backend`. It is not read from the environment.
+`requireAuth` enforces login checks in `middlewares/authentication.js`.
+
+Routes using it include:
+
+- `/user/profile`
+- `/user/profile/setup`
+- `/blog/create-new`
+- `/blog/:blogId/comment`
+- `POST /blog`
 
 ### Logout
 
 `GET /user/logout` clears the `sessionToken` cookie and redirects to `/`.
 
-## 7. Data Model
+## 6. Profile features
 
-All schemas use Mongoose timestamps, so `createdAt` and `updatedAt` are generated automatically.
+The current profile flow is more advanced than the earlier project version:
+
+- a user can complete their profile after signup
+- the user can edit a bio
+- a user can upload a profile image
+- the profile page shows a profile card and a list of their own blog posts
+- `profileComplete` is stored on the user and controls the reminder banner
+
+Profile-related routes:
+
+- `GET /user/profile`
+- `GET /user/profile/setup`
+- `POST /user/profile/setup`
+
+## 7. Data model
+
+All schemas use Mongoose timestamps (`createdAt`, `updatedAt`).
 
 ### User (`models/user.js`)
 
 Fields:
 
-- `fullName`: required string.
-- `email`: required, unique string.
-- `salt`: required string used for password hashing.
-- `password`: required string containing the password hash after save.
-- `profileImageURL`: string, defaulting to `/images/default.png`.
-- `role`: either `USER` or `ADMIN`; defaults to `USER`.
+- `fullName`: required string
+- `email`: required unique string
+- `password`: required string; stored as bcrypt hash after save
+- `salt`: optional legacy field for older password entries
+- `profileImageURL`: default `/images/default.png`
+- `bio`: default value `I read blogs.` with max length 300
+- `profileComplete`: boolean default `false`
+- `role`: `USER` or `ADMIN`; defaults to `USER`
 
-A user can be referenced by blog posts through `Blog.createdBy` and by comments through `Comment.createdBy`.
+The `matchPassword` method supports both modern bcrypt-based passwords and older legacy salted-hash records.
 
 ### Blog (`models/blog.js`)
 
 Fields:
 
-- `title`: required string.
-- `body`: required string. It is stored as submitted and converted from Markdown to HTML when a blog detail page is rendered.
-- `coverImageURL`: optional string containing the public URL of the uploaded cover image.
-- `createdBy`: ObjectId reference to the `user` model.
+- `title`: required string
+- `body`: required string
+- `coverImageURL`: optional file URL
+- `createdBy`: reference to `user`
 
 ### Comment (`models/comment.js`)
 
 Fields:
 
-- `content`: required string.
-- `blogId`: ObjectId reference to the `blog` model.
-- `createdBy`: ObjectId reference to the `user` model.
+- `content`: required string
+- `blogId`: reference to `blog`
+- `createdBy`: reference to `user`
 
-Comments are loaded for a blog and populated with their author documents.
+## 8. Route map
 
-## 8. Route Map
-
-### Application routes
+### Public routes
 
 | Method | Path | Behavior |
 |---|---|---|
-| `GET` | `/` | Load all blogs and render `home.ejs`. |
+| `GET` | `/` | Render the home page with all blog cards. |
+| `GET` | `/user/signup` | Render signup page. |
+| `POST` | `/user/signup` | Create a user and sign them in. |
+| `GET` | `/user/signin` | Render sign-in page, optionally showing a 401 warning. |
+| `POST` | `/user/signin` | Validate credentials and set auth cookie. |
+| `GET` | `/user/logout` | Clear the cookie and redirect home. |
+| `GET` | `/blog/:blogId` | Render a blog entry with author and comments. |
 
-### User routes (`routes/user.js`)
-
-| Method | Path | Behavior |
-|---|---|---|
-| `GET` | `/user/signup` | Render the signup form. |
-| `POST` | `/user/signup` | Create a user and redirect to `/`. |
-| `GET` | `/user/signin` | Render the signin form; optionally show a 401 warning. |
-| `POST` | `/user/signin` | Validate credentials, set JWT cookie, and redirect to `/`. |
-| `GET` | `/user/logout` | Clear the JWT cookie and redirect to `/`. |
-
-### Blog routes (`routes/blog.js`)
+### Authenticated routes
 
 | Method | Path | Behavior |
 |---|---|---|
+| `GET` | `/user/profile` | Render the authenticated user's profile and their blogs. |
+| `GET` | `/user/profile/setup` | Render the profile setup form. |
+| `POST` | `/user/profile/setup` | Update bio and/or upload a profile image. |
 | `GET` | `/blog/create-new` | Render the blog creation form. |
-| `POST` | `/blog` | Accept a multipart form, save the image and blog document, then redirect to the blog detail page. |
-| `GET` | `/blog/:blogId` | Load a blog and its comments, render Markdown, and render `blog.ejs`. |
-| `POST` | `/blog/:blogId/comment` | Create a comment for the blog using the current user's ID, then redirect back to the blog. |
+| `POST` | `/blog` | Create a blog with an uploaded cover image. |
+| `POST` | `/blog/:blogId/comment` | Add a comment to a blog. |
 
-## 9. Blog Creation and Upload Handling
+## 9. Upload handling
 
-The new-blog form submits to `POST /blog` using `multipart/form-data` with these fields:
+The project stores user-uploaded files locally in `public/uploads/<userId>/`.
 
-- `coverImage`: uploaded image file.
-- `title`: blog title.
-- `body`: blog body, intended to contain Markdown.
+### Profile image uploads
 
-Multer uses disk storage. For each upload it:
+`middlewares/uploadProfileImage.js`:
 
-1. Builds `public/uploads/<authenticated-user-id>` as the destination.
-2. Creates that directory recursively when it does not exist.
-3. Names the file `<timestamp>-<original-filename>`.
-4. Exposes the saved file using a URL like `/uploads/<user-id>/<filename>`.
+- creates the user-specific upload directory when needed
+- accepts only JPEG, PNG, and WebP images
+- rejects unsupported MIME types with a `415` error
+- enforces a 5 MB max file size
 
-The created blog stores the generated public URL and the authenticated user's ID, then redirects to `/blog/<blog-id>`.
+### Blog cover uploads
 
-## 10. Request and Rendering Flows
+`middlewares/uploadBlogCoverImage.js`:
 
-### Anonymous homepage request
+- creates the same user-specific upload folder
+- accepts JPEG, PNG, and WebP images
+- rejects invalid types with a `415` error
+- enforces a 3 MB max file size
 
-1. Browser requests `GET /`.
-2. Cookie parser reads available cookies.
-3. Authentication middleware leaves `req.user` unset when no session cookie exists.
-4. The home handler queries all blog documents.
-5. `home.ejs` renders the blog cards and passes `user` and `blogs`.
-6. `navbar.ejs` shows guest links for signup and signin.
+The saved file URL is stored as `/uploads/<userId>/<filename>` and rendered directly by the templates.
 
-### Authenticated homepage request
+## 10. Rendering and content flow
 
-The same flow occurs, except a valid `sessionToken` is decoded and placed in `req.user`. The navbar then shows the user's name, the Add Blog link, and a Logout link.
+The blog detail page handles Markdown rendering and sanitization:
 
-### Blog detail request
+1. `controlBlogRetrieval` fetches the blog and populates the author.
+2. It fetches comments and populates each comment author.
+3. It converts a blog body from Markdown to HTML via `marked`.
+4. It sanitizes the generated HTML using `sanitize-html`.
+5. It renders the blog in `views/blog.ejs`.
 
-1. Browser requests `GET /blog/:blogId`.
-2. The route finds the blog and populates its `createdBy` user.
-3. The route finds comments for the blog and populates each comment's `createdBy` user.
-4. `marked` converts the stored Markdown body to HTML.
-5. `blog.ejs` renders the title, cover image, HTML body, author, timestamp, comments, and optional comment form.
-6. The body is inserted with EJS's unescaped tag (`<%- ... %>`) because it is expected to contain rendered HTML.
+The homepage renders blog cards from `Blog.find({})` and each card links to the detail page.
 
-### Comment request
+## 11. Project structure
 
-1. An authenticated user submits the comment form from `blog.ejs`.
-2. `POST /blog/:blogId/comment` reads `content` from `req.body`.
-3. The route uses `req.user._id` as the comment author and the URL parameter as `blogId`.
-4. The comment is saved and the browser is redirected to the same blog detail page.
+```text
+app.js
+config/
+  index.js
+controllers/
+  home.js
+  user.js
+  blog.js
+middlewares/
+  authentication.js
+  uploadProfileImage.js
+  uploadBlogCoverImage.js
+  errorHandler.js
+models/
+  user.js
+  blog.js
+  comment.js
+public/
+  images/
+  uploads/
+routes/
+  user.js
+  blog.js
+services/
+  authentication.js
+  AppError.js
+  safeRoute.js
+  sanitize.js
+views/
+  home.ejs
+  signup.ejs
+  signin.ejs
+  addBlog.ejs
+  blog.ejs
+  profile.ejs
+  profile-setup.ejs
+  error.ejs
+  partials/
+    head.ejs
+    navbar.ejs
+    script.ejs
+```
 
-## 11. Views and Shared UI
+## 12. Current quality and limitations
 
-- `home.ejs` displays all blogs in Bootstrap cards with cover images, titles, and links to detail pages.
-- `signup.ejs` provides full name, email, and password fields.
-- `signin.ejs` provides email and password fields and can show an invalid-login alert.
-- `addBlog.ejs` provides a multipart form for cover image, title, and Markdown body.
-- `blog.ejs` displays the blog and its populated author, and shows the comment form only when `user` exists.
-- `partials/navbar.ejs` is shared by all pages and changes its links based on `locals.user`.
-- `partials/head.ejs` loads Bootstrap CSS and responsive metadata.
-- `partials/script.ejs` loads the Bootstrap JavaScript bundle.
+This version is functional but still intentionally lightweight. Notable limitations include:
 
-## 12. Current Access-Control Behavior and Limitations
+- no admin-only enforcement beyond the `role` field on the model
+- no blog edit or delete workflow
+- no pagination or search
+- no automated tests
+- no central API-validation layer beyond basic model requirements
+- no extensive production-level logging or monitoring
+- upload storage is local and user-scoped rather than cloud-backed
+- some error handling is centralized, but not every edge case is fully normalized
 
-The current UI hides authenticated-only links for guests, but the server does not enforce those restrictions with a dedicated middleware. In particular:
+The project is therefore best described as a working blog MVP rather than a hardened production app.
 
-- `GET /blog/create-new` does not explicitly reject anonymous users.
-- `POST /blog` assumes `req.user` exists while building the upload directory and blog document.
-- `POST /blog/:blogId/comment` assumes `req.user` exists.
-- A missing or malformed upload can cause `req.file` to be undefined when the blog is created.
-- Invalid JWT verification errors are not caught, so a malformed or expired token can result in an uncaught request error.
-- Blog and comment lookup failures are not handled explicitly. A missing blog can lead to a rendering error when `blog.body` is accessed.
-- There is no validation or normalization layer for form input beyond the Mongoose required fields and the browser's HTML form attributes.
-- Uploaded files are not restricted by server-side type, size, or extension validation.
-- The JWT signing secret is hard-coded and has no expiration configured.
-- The login cookie does not currently specify security options such as `httpOnly`, `secure`, `sameSite`, or an explicit expiration.
-- The blog body is rendered as HTML after Markdown conversion and inserted unescaped. This is appropriate only if the Markdown pipeline is trusted or sanitized.
-- There are no automated tests, API documentation, centralized error responses, pagination, editing, deletion, or administration workflows in the current codebase.
-
-These are descriptions of the current implementation, not claims that the behavior is production-ready.
-
-## 13. Local Development
+## 13. Local development
 
 Install dependencies:
 
@@ -286,51 +301,52 @@ Install dependencies:
 npm install
 ```
 
-Create a local `.env` file with at least a valid MongoDB connection string:
+Create a `.env` file with at least:
 
 ```env
 MONGO_URL=<your-mongodb-connection-string>
+JWT_SECRET=<a-long-random-secret>
 PORT=8000
 ```
 
-Run with automatic restart during development:
+Run the dev server:
 
 ```bash
 npm run dev
 ```
 
-Run normally:
+Or start normally:
 
 ```bash
 npm start
 ```
 
-Once MongoDB connects successfully, the application listens on the configured port, or on `http://localhost:8000` by default.
+Once MongoDB is reachable and the JWT secret is set, the app listens on the configured port, usually `http://localhost:8000`.
 
-## 14. Architectural Summary
+## 14. Architectural summary
 
-The project follows a lightweight layered structure:
+The project follows a simple layered architecture:
 
-- `app.js` owns application startup, global middleware, and the homepage.
-- `routes/` maps URLs to handlers and contains the blog-specific persistence logic.
-- `controllers/` contains the user authentication operations.
-- `services/` isolates JWT creation and verification.
-- `middlewares/` attaches optional authentication state to requests.
-- `models/` defines MongoDB document structure and user password behavior.
-- `views/` contains server-rendered EJS pages and shared Bootstrap partials.
-- `public/` contains browser-served static assets and uploaded files.
+- `app.js` wires startup and global middleware
+- `routes/` define HTTP entry points
+- `controllers/` handle request logic and data flow
+- `models/` define MongoDB schemas
+- `middlewares/` handle auth and uploads
+- `services/` contain JWT/auth helpers and sanitization utilities
+- `views/` render EJS pages and shared UI partials
+- `public/` serves static assets and uploaded user media
 
-The main request lifecycle is:
+The main lifecycle is:
 
 ```text
 Browser request
-  -> Express parsers and cookie parser
-  -> static-file handling
-  -> optional JWT user attachment
-  -> application/router handler
+  -> Express parsers and cookie handling
+  -> static asset lookup
+  -> JWT user attachment
+  -> route/controller logic
   -> Mongoose query or mutation
-  -> EJS rendering or redirect
-  -> HTML response / browser request for static assets
+  -> EJS render or redirect
+  -> HTTP response
 ```
 
-Overall, the current application is a server-rendered CRUD foundation for blogs with basic user authentication and comments. Its next hardening priorities would be explicit authentication middleware, input and upload validation, JWT/cookie configuration through environment variables, error handling, and sanitization of rendered Markdown.
+Overall, the project is currently a working, server-rendered blog platform with authentication, profile completion, uploads, and comments, and it is at the stage of a feature-complete personal blog MVP.
