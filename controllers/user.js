@@ -144,18 +144,22 @@ async function controlUserEdit(req, res) {
     return res.redirect("/user/profile");
   }
 
+  let updatedUser;
   try {
-    const user = await User.findByIdAndUpdate(req.user._id, updateData, {
+    updatedUser = await User.findByIdAndUpdate(req.user._id, updateData, {
       returnDocument: "after",
       runValidators: true,
     });
-    if (!user) throw new AppError(404, "User not found.");
+    if (!updatedUser) throw new AppError(404, "User not found.");
   } catch (err) {
     if (err.code === 11000) {
       throw new AppError(409, "An account with this email address already exists.");
     }
     throw err;
   }
+
+  const token = createToken(updatedUser);
+  res.cookie("sessionToken", token, config.COOKIE_OPTIONS);
 
   return res.redirect("/user/profile");
 }

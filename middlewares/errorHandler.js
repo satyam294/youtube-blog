@@ -10,6 +10,7 @@ function errorHandler(err, req, res, next) {
     : "Something went wrong. Please try again later.";
 
   return res.status(statusCode).render("error", {
+    user: req.user,
     message,
     stack: process.env.NODE_ENV === "production"
       ? null
