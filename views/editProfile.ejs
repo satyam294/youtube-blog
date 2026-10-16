@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('./partials/head') %>
+  <title>Edit Profile - <%= user.fullName %></title>
+</head>
+<body>
+  <%- include('./partials/navbar') %>
+
+  <main class="container py-5">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <div>
+            <h1 class="fw-bold mb-1">Edit Profile</h1>
+            <p class="text-muted mb-0">Manage your profile information.</p>
+          </div>
+          <a href="/user/profile" class="btn btn-outline-secondary">View Profile</a>
+        </div>
+
+        <div class="card border-0 shadow">
+          <div class="card-body p-4 p-md-5">
+            <div class="d-flex flex-column gap-4">
+              <section class="d-flex align-items-center justify-content-between gap-3">
+                <div class="d-flex align-items-center gap-3">
+                  <img
+                    src="<%= user.profileImageURL || '/images/default-profile.png' %>"
+                    alt="<%= user.fullName %>"
+                    class="rounded-circle border"
+                    style="width: 88px; height: 88px; object-fit: cover;"
+                  >
+                  <div>
+                    <h2 class="h6 text-muted mb-1">Profile picture</h2>
+                    <p class="mb-0">Your profile photo</p>
+                  </div>
+                </div>
+                <button class="btn btn-outline-primary" type="button" data-edit-field="profileImageURL">Edit</button>
+              </section>
+
+              <hr class="my-0">
+
+              <section class="d-flex align-items-center justify-content-between gap-3">
+                <div>
+                  <h2 class="h6 text-muted mb-1">Full name</h2>
+                  <p class="mb-0"><%= user.fullName %></p>
+                </div>
+                <button class="btn btn-outline-primary" type="button" data-edit-field="fullName">Edit</button>
+              </section>
+
+              <hr class="my-0">
+
+              <section class="d-flex align-items-center justify-content-between gap-3">
+                <div>
+                  <h2 class="h6 text-muted mb-1">Email address</h2>
+                  <p class="mb-0"><%= user.email %></p>
+                </div>
+                <button class="btn btn-outline-primary" type="button" data-edit-field="email">Edit</button>
+              </section>
+
+              <hr class="my-0">
+
+              <section class="d-flex align-items-center justify-content-between gap-3">
+                <div>
+                  <h2 class="h6 text-muted mb-1">Bio</h2>
+                  <p class="mb-0"><%= user.bio || 'No bio added yet.' %></p>
+                </div>
+                <button class="btn btn-outline-primary" type="button" data-edit-field="bio">Edit</button>
+              </section>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <%- include('./partials/script') %>
+</body>
+</html>

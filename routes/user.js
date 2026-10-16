@@ -6,6 +6,7 @@ const {
   controlUserCreation, 
   controlUserLogout,
   controlProfileRender,
+  controlUserEditRender,
   controlProfileCompletion, 
 } = require("../controllers/user");
 
@@ -28,6 +29,8 @@ userRouter.post("/signin", controlUserValidation);
 userRouter.get("/logout", controlUserLogout);
 
 userRouter.get("/profile", requireAuth, controlProfileRender);
+
+userRouter.get("/edit", requireAuth, controlUserEditRender);
 
 userRouter.get("/profile/setup", requireAuth, (req, res) => {
   return res.render("profile-setup", {

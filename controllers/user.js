@@ -82,6 +82,8 @@ async function controlProfileCompletion(req, res) {
 
 async function controlProfileRender(req, res) {
   const user = await User.findById(req.user._id);
+  if (!user) throw new AppError(404, "User not found.");
+
   const blogs = await Blog.find({
     createdBy: user._id
   });
@@ -92,10 +94,18 @@ async function controlProfileRender(req, res) {
   });
 }
 
+async function controlUserEditRender(req, res) {
+  const user = await User.findById(req.user._id);
+  if (!user) throw new AppError(404, "User not found.");
+
+  return res.render("editProfile", { user });
+}
+
 module.exports = {
   controlUserCreation,
   controlUserValidation,
   controlUserLogout,
   controlProfileRender,
   controlProfileCompletion,
-}
+  controlUserEditRender,
+};
