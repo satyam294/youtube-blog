@@ -101,6 +101,65 @@ async function controlUserEditRender(req, res) {
   return res.render("editProfile", { user });
 }
 
+async function controlUserEdit(req, res) {
+  const updateData = {};
+  const { fullName, email, bio } = req.body || {};
+
+  if (fullName !== undefined) {
+    if (typeof fullName !== "string") {
+      throw new AppError(400, "Full name must be text.");
+    }
+    const normalizedFullName = fullName.trim();
+    if (!normalizedFullName) throw new AppError(400, "Full name cannot be empty.");
+    updateData.fullName = normalizedFullName;
+  }
+
+  if (email !== undefined) {
+    if (typeof email !== "string") {
+      throw new AppError(400, "Email address must be text.");
+    }
+    const normalizedEmail = email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      throw new AppError(400, "Enter a valid email address.");
+    }
+    updateData.email = normalizedEmail;
+  }
+
+  if (bio !== undefined) {
+    if (typeof bio !== "string") {
+      throw new AppError(400, "Bio must be text.");
+    }
+    const normalizedBio = bio.trim();
+    if (normalizedBio.length > 300) {
+      throw new AppError(400, "Bio must be 300 characters or fewer.");
+    }
+    updateData.bio = normalizedBio;
+  }
+
+  if (req.file) {
+    updateData.profileImageURL = `/uploads/${req.user._id}/${req.file.filename}`;
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    return res.redirect("/user/profile");
+  }
+
+  try {
+    const user = await User.findByIdAndUpdate(req.user._id, updateData, {
+      returnDocument: "after",
+      runValidators: true,
+    });
+    if (!user) throw new AppError(404, "User not found.");
+  } catch (err) {
+    if (err.code === 11000) {
+      throw new AppError(409, "An account with this email address already exists.");
+    }
+    throw err;
+  }
+
+  return res.redirect("/user/profile");
+}
+
 module.exports = {
   controlUserCreation,
   controlUserValidation,
@@ -108,4 +167,5 @@ module.exports = {
   controlProfileRender,
   controlProfileCompletion,
   controlUserEditRender,
+  controlUserEdit,
 };
