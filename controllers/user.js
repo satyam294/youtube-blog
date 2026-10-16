@@ -144,6 +144,8 @@ async function controlUserEdit(req, res) {
     return res.redirect("/user/profile");
   }
 
+  updateData.profileComplete = true;
+
   let updatedUser;
   try {
     updatedUser = await User.findByIdAndUpdate(req.user._id, updateData, {
